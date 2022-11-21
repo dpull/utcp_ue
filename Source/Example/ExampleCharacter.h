@@ -52,9 +52,20 @@ protected:
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 protected:
+	virtual void BeginPlay() override;
+
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPCFunction(int InNum);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCFunction(int InNum);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPCFunction(int InNum);
 
 public:
 	/** Returns CameraBoom subobject **/

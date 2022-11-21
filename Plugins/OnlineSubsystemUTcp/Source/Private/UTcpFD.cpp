@@ -47,7 +47,7 @@ static void LogWrapper(int InLevel, const char* InFormat, va_list InArgs)
 {
 	char TempString[1024];
 	FCStringAnsi::GetVarArgs(TempString, UE_ARRAY_COUNT(TempString), InFormat, InArgs);
-	UE_LOG(LogUTcp, Display, TEXT("%s"), UTF8_TO_TCHAR(TempString));
+	UE_LOG(LogUTcp, Log, TEXT("[UTCP]%s"), UTF8_TO_TCHAR(TempString));
 }
 
 void FUTcpFD::GlobalConfig()
@@ -132,6 +132,7 @@ void FUTcpFD::InitSequence(int32 IncomingSequence, int32 OutgoingSequence)
 
 void FUTcpFD::Tick()
 {
+	UE_LOG(LogUTcp, Log, TEXT("utcp Out[%d/%d], In:%d, InRec:%d, OutRec:%d"), UTcpFD->OutPacketId, UTcpFD->OutAckPacketId, UTcpFD->InPacketId, UTcpFD->utcp_bunch_data.NumInRec, UTcpFD->utcp_bunch_data.NumOutRec);
 	utcp_update(UTcpFD);
 	ProcOrderedCache(false);
 }
@@ -144,7 +145,7 @@ void FUTcpFD::PostTickDispatch()
 void FUTcpFD::FlushNet()
 {
 	utcp_flush(UTcpFD);
-	UE_LOG(LogUTcp, Display, TEXT("utcp_flush:(%d, %d)"));
+	UE_LOG(LogUTcp, Display, TEXT("utcp_flush"));
 }
 
 void FUTcpFD::ReceivedRawPacket(void* InData, int32 Count)
@@ -195,6 +196,14 @@ void FUTcpFD::ProcOrderedCache(bool flushing_order_cache)
 
 void FUTcpFD::OnRawSend(const void* data, int len)
 {
+#if DO_ENABLE_NET_TEST
+	if (Connection->PacketSimulationSettings.PktLoss > 0 && FMath::FRand() * 100.f < Connection->PacketSimulationSettings.PktLoss)
+	{
+		UE_LOG(LogUTcp, Display, TEXT("OnRawSend Drop"));
+		return;
+	}
+#endif
+
 	auto Conn = Cast<UIpConnection>(Connection);
 	int32 BytesSent;
 	Conn->Socket->SendTo((uint8*)data, len, BytesSent, *Conn->RemoteAddr);
@@ -225,5 +234,6 @@ void FUTcpFD::OnRecv(const utcp_bunch* bunches[], int count)
 
 void FUTcpFD::OnDeliveryStatus(int32_t packet_id, bool ack)
 {
+	UE_LOG(LogUTcp, Display, TEXT("OnDeliveryStatus:(%d, %s)"), packet_id, ack ? TEXT("ACK") : TEXT("NAK"));
 }
 

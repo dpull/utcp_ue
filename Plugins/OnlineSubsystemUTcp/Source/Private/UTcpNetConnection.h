@@ -39,12 +39,16 @@ public:
 	void UTcpPostTickDispatch();
 
 private:
+	void InternalAck(int32 AckPacketId, FChannelsToClose& OutChannelsToClose);
+
+private:
 	class FUTcpFD* UTcpFD = nullptr;
 };
 
 class UUTcpChannel : public UChannel
 {
 public:
+	virtual void Tick() override;
 	FPacketIdRange UTcpSendBunch(FOutBunch* Bunch, bool Merge);
 private:
 	int32 UTcpSendRawBunch(FOutBunch* OutBunch, bool Merge);
@@ -79,6 +83,13 @@ class UUTcpActorChannel : public UActorChannel
 		: UActorChannel(ObjectInitializer)
 	{
 	}
+
+	virtual void Tick() override
+	{
+		Super::Tick();
+		((UUTcpChannel*)this)->Tick();
+	}
+
 
 	virtual FPacketIdRange SendBunch(FOutBunch* Bunch, bool Merge) override
 	{

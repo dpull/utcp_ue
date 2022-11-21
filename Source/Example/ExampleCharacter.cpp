@@ -77,6 +77,24 @@ void AExampleCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindTouch(IE_Released, this, &AExampleCharacter::TouchStopped);
 }
 
+void AExampleCharacter::ClientRPCFunction_Implementation(int InNum)
+{
+	ServerRPCFunction(InNum);
+	UE_LOG(LogTemp, Display, TEXT("ClientRPCFunction:%d"), InNum);
+}
+
+void AExampleCharacter::ServerRPCFunction_Implementation(int InNum)
+{
+	ClientRPCFunction(InNum+1);
+	MulticastRPCFunction(InNum+1);
+	UE_LOG(LogTemp, Display, TEXT("ServerRPCFunction:%d"), InNum);
+}
+
+void AExampleCharacter::MulticastRPCFunction_Implementation(int InNum)
+{
+	
+}
+
 void AExampleCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
 	Jump();
@@ -85,6 +103,15 @@ void AExampleCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Loca
 void AExampleCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
 	StopJumping();
+}
+
+void AExampleCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	if (GetWorld()->GetNetDriver()->ServerConnection)
+	{
+		ServerRPCFunction(1);
+	}
 }
 
 void AExampleCharacter::TurnAtRate(float Rate)

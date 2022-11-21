@@ -49,6 +49,7 @@ void UUTcpConnection::ReceivedRawPacket(void* Data, int32 Count)
 		return;
 	}
 
+	LastReceiveTime = Driver->GetElapsedTime();
 	UTcpFD->ReceivedRawPacket(Data, Count);
 }
 
@@ -57,12 +58,16 @@ void UUTcpConnection::Tick(float DeltaSeconds)
 	if (!UTcpFD)
 	{
 		Super::Tick(DeltaSeconds);
+		UE_LOG(LogUTcp, Log, TEXT("Raw Out[%d/%d], In:%d, InRec:%d, OutRec:%d"), OutPacketId, OutAckPacketId, InPacketId);
 		return;
 	}
 
 	UTcpFD->Tick();
 
 	FlushNet(false);
+
+	FChannelsToClose ChannelsToClose;
+	InternalAck(OutPacketId, ChannelsToClose);
 }
 
 void UUTcpConnection::FlushNet(bool bIgnoreSimulation)
@@ -86,6 +91,58 @@ void UUTcpConnection::UTcpPostTickDispatch()
 {
 	if (UTcpFD)
 		UTcpFD->PostTickDispatch();
+}
+
+void UUTcpConnection::InternalAck(int32 AckPacketId, FChannelsToClose& OutChannelsToClose)
+{
+	UE_LOG(LogNetTraffic, Verbose, TEXT("   Received ack %i"), AckPacketId);
+	
+	// Advance OutAckPacketId
+	OutAckPacketId = AckPacketId;
+
+	if (PackageMap != NULL)
+	{
+		PackageMap->ReceivedAck( AckPacketId );
+	}
+
+	auto AckChannelFunc = [this, &OutChannelsToClose](int32 AckedPacketId, uint32 ChannelIndex)
+	{
+		UChannel* const Channel = Channels[ChannelIndex];
+
+		if (Channel)
+		{
+			if (Channel->OpenPacketId.Last == AckedPacketId) // Necessary for unreliable "bNetTemporary" channels.
+				{
+				Channel->OpenAcked = 1;
+				}
+				
+			for (FOutBunch* OutBunch = Channel->OutRec; OutBunch; OutBunch = OutBunch->Next)
+			{
+				ensure(false);
+			}
+			Channel->ReceivedAck(AckedPacketId);
+			EChannelCloseReason CloseReason;
+			if (Channel->ReceivedAcks(CloseReason))
+			{
+				const FChannelCloseInfo Info = {ChannelIndex, CloseReason};
+				OutChannelsToClose.Emplace(Info);
+			}	
+		}
+	};
+
+	// TODO 可以优化数量
+	for (auto It = ActorChannelConstIterator(); It; ++It)
+	{
+		AckChannelFunc(AckPacketId, It->Value->ChIndex);
+	}
+}
+
+void UUTcpChannel::Tick()
+{
+	if (!IsUseUTcp(this))
+	{
+		UE_LOG(LogUTcp, Log, TEXT("RAW Channel %d InRec:%d, OutRec:%d"), ChIndex, NumInRec, NumOutRec);
+	}
 }
 
 FPacketIdRange UUTcpChannel::UTcpSendBunch(FOutBunch* Bunch, bool Merge)
@@ -244,5 +301,6 @@ int32 UUTcpChannel::UTcpSendRawBunch(FOutBunch* OutBunch, bool Merge)
 		SetClosingFlag();
 	}
 
-	return PacketId;
+	// return PacketId;
+	return Connection->OutPacketId;
 }

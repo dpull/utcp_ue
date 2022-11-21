@@ -61,25 +61,6 @@ void UUTcpNetDriver::TickDispatch(float DeltaTime)
 		FUTcpFD::AddElapsedTime(DeltaTime * 1000 * 1000 * 1000);
 	}
 	Super::TickDispatch(DeltaTime);
-	return;
-	/*
-	
-
-	if ((bIsClient && !Setting->bEnableClient) || (!bIsClient && !Setting->bEnableServer))
-	{
-		Super::TickDispatch(DeltaTime);
-		return;
-	}
-
-	LLM_SCOPE(ELLMTag::Networking);
-
-	UNetDriver::TickDispatch(DeltaTime);
-
-	if (!bIsClient && !UTcpFD)
-	{
-		UTcpFD = new FUTcpFD(false);
-	}
-	*/
 }
 
 void UUTcpNetDriver::LowLevelSend(TSharedPtr<const FInternetAddr> Address, void* Data, int32 CountBits, FOutPacketTraits& Traits)
