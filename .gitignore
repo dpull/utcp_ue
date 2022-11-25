@@ -1,5 +1,6 @@
 # linkdir<-->${utcp dir}\utcp
 Plugins/OnlineSubsystemUTcp/Source/Private/utcp
+Plugins/OnlineSubsystemUTcp/Source/Private/abstract
 
 # Visual Studio 2015 user specific files
 .vs/

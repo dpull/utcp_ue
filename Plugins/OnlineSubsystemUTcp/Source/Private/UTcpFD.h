@@ -1,18 +1,15 @@
 #pragma once
 #include "UTcpNetConnection.h"
 #include "IpNetDriver.h"
+#include "abstract/utcp.hpp"
 
-class FUTcpFD
+class FUTcpFD : public utcp::conn
 {
   public:
 	static void GlobalConfig();
 	static void AddElapsedTime(int64 NS);
 
 	FUTcpFD(UNetConnection* InConn, UNetDriver* InDriver);
-	~FUTcpFD();
-
-	bool Accept(FUTcpFD* listener, bool reconnect);
-	bool IsCookieEqual(FUTcpFD* listener);
 	void InitSequence(int32 IncomingSequence, int32 OutgoingSequence);
 
 	void Tick();
@@ -23,18 +20,12 @@ class FUTcpFD
 	int64 SendBunch(const FOutBunch* InBunch);
 
   protected:
-	void OnAccept(bool reconnect);
-	void OnRawSend(const void* data, int len);
-	void OnRecv(const struct utcp_bunch* bunches[], int count);
-	void OnDeliveryStatus(int32_t packet_id, bool ack);
-
-  private:
-	void ProcOrderedCache(bool flushing_order_cache);
-
-  protected:
+	virtual void on_connect(bool reconnect) override;
+	virtual void on_disconnect(int close_reason) override;
+	virtual void on_outgoing(const void* data, int len) override;
+	virtual void on_recv_bunch(struct utcp_bunch* const bunches[], int count) override;
+	virtual void on_delivery_status(int32_t packet_id, bool ack) override;
 	
 	TObjectPtr<UNetConnection> Connection;
 	TObjectPtr<UNetDriver> Driver;
-	struct utcp_fd* UTcpFD = nullptr;
-	struct utcp_packet_view_ordered_queue* OrderedCache = nullptr;
 };

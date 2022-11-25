@@ -58,7 +58,8 @@ void UUTcpConnection::Tick(float DeltaSeconds)
 	if (!UTcpFD)
 	{
 		Super::Tick(DeltaSeconds);
-		UE_LOG(LogUTcp, Log, TEXT("Raw Out[%d/%d], In:%d, InRec:%d, OutRec:%d"), OutPacketId, OutAckPacketId, InPacketId);
+		if (OutPacketId > 0)
+			UE_LOG(LogUTcp, Log, TEXT("Raw Out[%d/%d], In:%d"), OutPacketId, OutAckPacketId, InPacketId);
 		return;
 	}
 
